@@ -32,7 +32,7 @@ jobs:
         run: npm ci
       - name: Filter events
         env:
-          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TOKEN: ${{ secrets.PAT }}
         run: npm run filter-github-events
       - name: Add repos filtered to issue
         uses: actions/github-script@v6

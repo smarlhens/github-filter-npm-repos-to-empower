@@ -32,5 +32,5 @@ jobs:
         run: npm ci
       - name: Filter repos
         env:
-          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TOKEN: ${{ secrets.PAT }}
         run: npm run filter-github-repos
