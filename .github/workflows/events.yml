@@ -1,8 +1,9 @@
 name: events
 
-on: workflow_dispatch
-#  schedule:
-#    - cron: '0 * * * *'
+on:
+  - workflow_dispatch
+  - schedule:
+      - cron: '0 * * * *'
 
 env:
   NODE_VERSION: '16.17.0'
@@ -44,6 +45,11 @@ jobs:
           script: |
             const { REPOS } = process.env
             const commentText = JSON.parse(REPOS).map(repo => `- [${repo.owner}/${repo.name}](https://github.com/${repo.owner}/${repo.name})`).join('\n');
+
+            if (commentText.length === 0) {
+              return;
+            }
+
             await github.rest.issues.createComment({
               issue_number: 1,
               owner: context.repo.owner,
