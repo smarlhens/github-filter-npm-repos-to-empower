@@ -35,4 +35,4 @@ jobs:
       - name: Filter repos
         env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          run: npm run filter-github-repos
+        run: npm run filter-github-repos
