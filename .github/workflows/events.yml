@@ -1,7 +1,7 @@
 name: events
 
 on:
-  dispatch:
+  workflow_dispatch:
     types: [filter_github_events]
 #  schedule:
 #    - cron: '0 * * * *'

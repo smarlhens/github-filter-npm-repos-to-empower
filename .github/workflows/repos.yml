@@ -1,7 +1,7 @@
 name: repos
 
 on:
-  dispatch:
+  workflow_dispatch:
     types: [filter_github_repos]
 #  schedule:
 #    - cron: '0 4 * * *'
