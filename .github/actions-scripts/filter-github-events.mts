@@ -5,8 +5,8 @@ import {
   areDependenciesPinnedAndEnginesSet,
   Context,
   contextToOutput,
-  GitHubRepository,
   filterOpinionatedRepoToAnalyse,
+  GitHubRepository,
   isNotArchivedAndHaveAtLeastTenStars,
   octokit,
   retrievePackageJsonFilesAndWorkflows,
@@ -32,11 +32,14 @@ const main = async (): Promise<void> => {
               owner,
               repo: repoName,
             })
-            .then(payload => payload.data as GitHubRepository);
+            .then(payload => payload.data as GitHubRepository)
+            .catch(() => undefined);
         }),
     ).then<Context[]>(payload => {
+      const filterUndefinedRepo = (repo: GitHubRepository | undefined): repo is GitHubRepository => !!repo;
       return Promise.all(
         payload
+          .filter(filterUndefinedRepo)
           .filter(isNotArchivedAndHaveAtLeastTenStars)
           .map(repo => retrievePackageJsonFilesAndWorkflows({ repo, currentUser })),
       );
