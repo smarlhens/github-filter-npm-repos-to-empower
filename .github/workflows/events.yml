@@ -1,0 +1,53 @@
+name: events
+
+on:
+  dispatch:
+    types: [filter_github_events]
+#  schedule:
+#    - cron: '0 * * * *'
+
+env:
+  NODE_VERSION: '16.13.0'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+      - name: Cache node modules
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ env.NODE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-${{ env.NODE_VERSION }}
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Install dependencies
+        run: npm ci
+      - name: Filter events
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          run: npm run filter-github-events
+      - name: Add repos filtered to issue
+        uses: actions/github-script@v6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOS: ${{ steps.filter_events.outputs.repos }}
+        with:
+          script: |
+            const { REPOS } = process.env
+            const commentText = REPOS.map(repo => `- [${repo.owner}/${repo.name}](https://github.com/${repo.owner}/${repo.name})`).join('\n');
+            await github.rest.issues.createComment({
+              issue_number: 1,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: commentText
+            });
