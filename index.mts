@@ -79,7 +79,7 @@ const getFile = async ({
               format: 'raw',
             },
           })
-          .then(payload => JSON.stringify(payload))
+          .then(payload => payload.data as unknown as string)
           .catch(() => '');
       }
 
