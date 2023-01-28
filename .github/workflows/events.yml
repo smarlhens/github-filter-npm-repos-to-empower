@@ -3,7 +3,7 @@ name: events
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 * * * *'
+    - cron: '*/10 * * * *'
 
 env:
   NODE_VERSION: '16.17.0'
