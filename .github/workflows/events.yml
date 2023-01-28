@@ -42,7 +42,7 @@ jobs:
         with:
           script: |
             const { REPOS } = process.env
-            const commentText = REPOS.map(repo => `- [${repo.owner}/${repo.name}](https://github.com/${repo.owner}/${repo.name})`).join('\n');
+            const commentText = JSON.parse(REPOS).map(repo => `- [${repo.owner}/${repo.name}](https://github.com/${repo.owner}/${repo.name})`).join('\n');
             await github.rest.issues.createComment({
               issue_number: 1,
               owner: context.repo.owner,
