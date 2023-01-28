@@ -32,9 +32,7 @@ const main = async (): Promise<void> => {
 
   debug(`${reposToFork.length} repos to fork`);
 
-  if (reposToFork.length > 0) {
-    setOutput('repos', reposToFork.map(contextToOutput));
-  }
+  setOutput('repos', reposToFork.map(contextToOutput));
 
   debug('End main function');
 };
