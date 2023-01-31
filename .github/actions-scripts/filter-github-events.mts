@@ -23,8 +23,14 @@ const main = async (): Promise<void> => {
   const currentUser = (await octokit.users.getAuthenticated()).data;
   const contexts: Context[] = (
     await Promise.all(
-      events
-        .filter(event => event.type === 'PushEvent' || event.type === 'PublicEvent')
+      Array.from(
+        new Set(
+          events
+            .filter(event => event.type === 'PushEvent' || event.type === 'PublicEvent')
+            .map(event => event.repo.name),
+        ),
+      )
+        .map(name => events.find(event => event.repo.name === name)!)
         .map(async event => {
           const [owner, repoName] = event.repo.name.split('/');
           return octokit.repos
