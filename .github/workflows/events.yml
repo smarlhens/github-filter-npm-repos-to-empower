@@ -43,16 +43,6 @@ jobs:
           REPOS: ${{ steps.filter_events.outputs.repos }}
         with:
           script: |
-            const { REPOS } = process.env
-            const commentText = JSON.parse(REPOS).map(repo => `- [${repo.owner}/${repo.name}](https://github.com/${repo.owner}/${repo.name})`).join('\n');
-
-            if (commentText.length === 0) {
-              return;
-            }
-
-            await github.rest.issues.createComment({
-              issue_number: 1,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: commentText
-            });
+            const { REPOS } = process.env;
+            const script = require('${{ github.workspace }}/comment-issue-on-filter-events.js');
+            await script({ github, context, repos: REPOS })
