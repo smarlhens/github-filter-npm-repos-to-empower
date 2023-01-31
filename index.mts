@@ -217,7 +217,7 @@ export const filterOpinionatedRepoToAnalyse = (ctx: Context): boolean =>
   !!ctx.packageJsonFile &&
   !!ctx.packageLockJsonFile &&
   !!ctx.packageLockJsonFile.lastModifiedAt &&
-  new Date().getTime() - new Date(ctx.packageLockJsonFile.lastModifiedAt).getTime() < 31536000000 &&
+  new Date().getTime() - new Date(ctx.packageLockJsonFile.lastModifiedAt).getTime() < 15768000000 &&
   !!ctx.hasCIOnPullRequests &&
   !ctx.isRepoForked &&
   !ctx.hasPnpmLock &&
