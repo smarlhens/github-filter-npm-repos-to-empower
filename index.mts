@@ -1,8 +1,16 @@
 import { debug } from '@actions/core';
 import type { components } from '@octokit/openapi-types';
 import { Octokit } from '@octokit/rest';
-import { checkEnginesFromString } from '@smarlhens/npm-check-engines';
-import { pinDependenciesFromString } from '@smarlhens/npm-pin-dependencies';
+import {
+  checkEnginesFromString,
+  validatePackageJson as checkEnginesValidatePackageJson,
+  validatePackageLock as checkEnginesValidatePackageLock,
+} from '@smarlhens/npm-check-engines';
+import {
+  pinDependenciesFromString,
+  validatePackageJson as pinDependenciesValidatePackageJson,
+  validatePackageLock as pinDependenciesValidatePackageLock,
+} from '@smarlhens/npm-pin-dependencies';
 
 export const octokit = new Octokit({
   auth: process.env.TOKEN,
@@ -21,6 +29,7 @@ export type Context = {
   isRepoForked?: boolean | undefined;
   hasYarnLock?: boolean | undefined;
   hasPnpmLock?: boolean | undefined;
+  hasNpmShrinkwrap?: boolean | undefined;
 };
 
 const hasFile = async ({
@@ -48,6 +57,8 @@ const hasFile = async ({
     });
 };
 
+const oneMegabyte = 1024 * 1024;
+const hundredMegabyte = 100 * oneMegabyte;
 const getFile = async ({
   owner,
   repoName,
@@ -69,7 +80,7 @@ const getFile = async ({
       const data = payload.data as RepositoryFile;
       const { content, size, encoding } = data;
 
-      if (content === '' && size >= 1024 * 1024 && encoding === 'none') {
+      if (content === '' && size >= oneMegabyte && size < hundredMegabyte && encoding === 'none') {
         data.content = await octokit.repos
           .getContent({
             owner,
@@ -153,20 +164,54 @@ export const areDependenciesPinnedAndEnginesSet = (ctx: Context): boolean => {
     packageLockString = atob(packageLockString);
   }
 
-  const { versionsToPin } = pinDependenciesFromString({
-    packageJsonString,
-    packageLockString,
-  });
+  let pinDependenciesValidPackageJson = false;
+  try {
+    pinDependenciesValidPackageJson = pinDependenciesValidatePackageJson({ packageJsonString });
+  } catch (_) {
+    debug(`${ctx.repo.full_name} has invalid package.json for pinning dependencies.`);
+  }
+
+  let pinDependenciesValidPackageLock = false;
+  try {
+    pinDependenciesValidPackageLock = pinDependenciesValidatePackageLock({ packageLockString });
+  } catch (_) {
+    debug(`${ctx.repo.full_name} has invalid package-lock.json for pinning dependencies.`);
+  }
+
+  let versionsToPin = [];
+  if (pinDependenciesValidPackageJson && pinDependenciesValidPackageLock) {
+    ({ versionsToPin } = pinDependenciesFromString({
+      packageJsonString,
+      packageLockString,
+    }));
+  }
 
   if (versionsToPin.length > 0) {
     debug(`${ctx.repo.full_name} has ${versionsToPin.length} dependencies to pin.`);
   }
 
-  const { enginesRangeToSet } = checkEnginesFromString({
-    engines: ['npm', 'node'],
-    packageJsonString,
-    packageLockString,
-  });
+  let checkEnginesValidPackageJson = false;
+  try {
+    checkEnginesValidPackageJson = checkEnginesValidatePackageJson({ packageJsonString });
+  } catch (_) {
+    debug(`${ctx.repo.full_name} has invalid package.json for engines check.`);
+  }
+
+  let checkEnginesValidPackageLock = false;
+  try {
+    checkEnginesValidPackageLock = checkEnginesValidatePackageLock({ packageLockString });
+  } catch (_) {
+    debug(`${ctx.repo.full_name} has invalid package-lock.json for engines check.`);
+  }
+
+  let enginesRangeToSet = [];
+  if (checkEnginesValidPackageJson && checkEnginesValidPackageLock) {
+    ({ enginesRangeToSet } = checkEnginesFromString({
+      engines: ['npm', 'node'],
+      packageJsonString,
+      packageLockString,
+    }));
+  }
 
   if (enginesRangeToSet.length > 0) {
     debug(`${ctx.repo.full_name} has ${enginesRangeToSet.length} engine ranges to set.`);
@@ -183,31 +228,48 @@ export const retrievePackageJsonFilesAndWorkflows = async ({
   currentUser: GitHubUser;
 }): Promise<Context> => {
   const [owner, repoName] = repo.full_name.split('/');
-  const [packageJsonFile, packageLockJsonFile, hasCIOnPullRequests, isRepoForked, hasYarnLock, hasPnpmLock] =
-    await Promise.all([
-      getFile({ owner, repoName, fileName: 'package.json' }),
-      getFile({ owner, repoName, fileName: 'package-lock.json' }).then(async file => {
-        if (!file) {
-          return undefined;
-        }
+  const [
+    packageJsonFile,
+    packageLockJsonFile,
+    hasCIOnPullRequests,
+    isRepoForked,
+    hasYarnLock,
+    hasPnpmLock,
+    hasNpmShrinkwrap,
+  ] = await Promise.all([
+    getFile({ owner, repoName, fileName: 'package.json' }),
+    getFile({ owner, repoName, fileName: 'package-lock.json' }).then(async file => {
+      if (!file) {
+        return undefined;
+      }
 
-        const lastCommit: RepositoryCommit = await octokit.repos
-          .listCommits({
-            path: file!.path,
-            owner,
-            repo: repoName,
-            page: 1,
-            per_page: 1,
-          })
-          .then(payload => payload.data[0] as RepositoryCommit);
-        return { ...file, lastModifiedAt: lastCommit.commit.committer!.date! };
-      }),
-      checkCIOnPullRequests({ owner, repoName }),
-      checkIfRepoIsForked({ owner, repoName, currentUser }),
-      hasFile({ owner, repoName, fileName: 'yarn.lock' }),
-      hasFile({ owner, repoName, fileName: 'pnpm-lock.yaml' }),
-    ]);
-  return { repo, packageJsonFile, packageLockJsonFile, hasCIOnPullRequests, isRepoForked, hasYarnLock, hasPnpmLock };
+      const lastCommit: RepositoryCommit = await octokit.repos
+        .listCommits({
+          path: file!.path,
+          owner,
+          repo: repoName,
+          page: 1,
+          per_page: 1,
+        })
+        .then(payload => payload.data[0] as RepositoryCommit);
+      return { ...file, lastModifiedAt: lastCommit.commit.committer!.date! };
+    }),
+    checkCIOnPullRequests({ owner, repoName }),
+    checkIfRepoIsForked({ owner, repoName, currentUser }),
+    hasFile({ owner, repoName, fileName: 'yarn.lock' }),
+    hasFile({ owner, repoName, fileName: 'pnpm-lock.yaml' }),
+    hasFile({ owner, repoName, fileName: 'npm-shrinkwrap.json' }),
+  ]);
+  return {
+    repo,
+    packageJsonFile,
+    packageLockJsonFile,
+    hasCIOnPullRequests,
+    isRepoForked,
+    hasYarnLock,
+    hasPnpmLock,
+    hasNpmShrinkwrap,
+  };
 };
 
 export const isNotArchivedAndHaveAtLeastTenStars = (repo: GitHubRepository): boolean =>
@@ -221,7 +283,8 @@ export const filterOpinionatedRepoToAnalyse = (ctx: Context): boolean =>
   !!ctx.hasCIOnPullRequests &&
   !ctx.isRepoForked &&
   !ctx.hasPnpmLock &&
-  !ctx.hasYarnLock;
+  !ctx.hasYarnLock &&
+  !ctx.hasNpmShrinkwrap;
 
 export const contextToOutput = (ctx: Context): { name: string; owner: string } => ({
   name: ctx.repo.name,
