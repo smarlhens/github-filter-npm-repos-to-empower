@@ -9,7 +9,7 @@ env:
   NODE_VERSION: '16.17.0'
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  group: ${{ github.workflow }}
   cancel-in-progress: true
 
 jobs:
@@ -36,6 +36,7 @@ jobs:
         env:
           TOKEN: ${{ secrets.PAT }}
         run: npm run filter-github-events
+        timeout-minutes: 5
       - name: Add repos filtered to issue
         uses: actions/github-script@v6
         env:
