@@ -11,10 +11,25 @@ import {
   validatePackageJson as pinDependenciesValidatePackageJson,
   validatePackageLock as pinDependenciesValidatePackageLock,
 } from '@smarlhens/npm-pin-dependencies';
+import minimist from 'minimist';
 
 export const octokit = new Octokit({
   auth: process.env.TOKEN,
 });
+
+export const argv = minimist(process.argv.slice(2));
+const ownerTypes = ['user', 'organization'] as const;
+type OwnerTypes = typeof ownerTypes;
+type OwnerType = OwnerTypes[number];
+export const getOwnerType = (): OwnerType | undefined => {
+  let ownerType: OwnerType | undefined = argv['owner-type'];
+
+  if (ownerType && !ownerTypes.includes(ownerType)) {
+    ownerType = undefined;
+  }
+
+  return ownerType;
+};
 
 type RepositoryDirectory = components['schemas']['content-directory'];
 type RepositoryFile = components['schemas']['content-file'];
@@ -271,6 +286,9 @@ export const retrievePackageJsonFilesAndWorkflows = async ({
     hasNpmShrinkwrap,
   };
 };
+
+export const isOwnerOfType = ({ repo, type }: { repo: GitHubRepository; type: OwnerType }): boolean =>
+  repo.owner.type === type;
 
 export const isNotArchivedAndHaveAtLeastTenStars = (repo: GitHubRepository): boolean =>
   !repo.archived && repo.stargazers_count > 10;
