@@ -6,8 +6,10 @@ import {
   Context,
   contextToOutput,
   filterOpinionatedRepoToAnalyse,
+  getOwnerType,
   GitHubRepository,
   isNotArchivedAndHaveAtLeastTenStars,
+  isOwnerOfType,
   octokit,
   retrievePackageJsonFilesAndWorkflows,
 } from '../../index.mjs';
@@ -17,6 +19,7 @@ type GitHubEvent = components['schemas']['event'];
 const main = async (): Promise<void> => {
   debug('Start main function');
 
+  const ownerType = getOwnerType();
   const events: GitHubEvent[] = await octokit.paginate('GET /events', { per_page: 100 });
   debug(`${events.length} events received`);
 
@@ -46,6 +49,7 @@ const main = async (): Promise<void> => {
       return Promise.all(
         payload
           .filter(filterUndefinedRepo)
+          .filter(repo => !ownerType || (ownerType && isOwnerOfType({ repo, type: ownerType })))
           .filter(isNotArchivedAndHaveAtLeastTenStars)
           .map(repo => retrievePackageJsonFilesAndWorkflows({ repo, currentUser })),
       );
