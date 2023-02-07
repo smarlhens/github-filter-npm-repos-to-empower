@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v3
@@ -35,6 +35,8 @@ jobs:
         id: filter_events
         env:
           TOKEN: ${{ secrets.PAT }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
         run: npm run filter-github-events
         timeout-minutes: 5
       - name: Add repos filtered to issue

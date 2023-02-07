@@ -1,5 +1,4 @@
 import { debug, setOutput } from '@actions/core';
-import type { components } from '@octokit/openapi-types';
 
 import {
   areDependenciesPinnedAndEnginesSet,
@@ -7,23 +6,26 @@ import {
   contextToOutput,
   filterOpinionatedRepoToAnalyse,
   getOwnerType,
+  getRepositories,
   GitHubRepository,
   isNotArchivedAndHaveAtLeastTenStars,
   isOwnerOfType,
   octokit,
+  repositoryHasAlreadyBeenCloned,
   retrievePackageJsonFilesAndWorkflows,
 } from '../../index.mjs';
-
-type GitHubEvent = components['schemas']['event'];
 
 const main = async (): Promise<void> => {
   debug('Start main function');
 
   const ownerType = getOwnerType();
-  const events: GitHubEvent[] = await octokit.paginate('GET /events', { per_page: 100 });
+  const [repositories, currentUser, events] = await Promise.all([
+    getRepositories(),
+    octokit.users.getAuthenticated(),
+    octokit.paginate('GET /events', { per_page: 100 }),
+  ]);
   debug(`${events.length} events received`);
 
-  const currentUser = (await octokit.users.getAuthenticated()).data;
   const contexts: Context[] = (
     await Promise.all(
       Array.from(
@@ -49,9 +51,10 @@ const main = async (): Promise<void> => {
       return Promise.all(
         payload
           .filter(filterUndefinedRepo)
+          .filter(repo => repositoryHasAlreadyBeenCloned({ repo, repositories: repositories.data }))
           .filter(repo => !ownerType || (ownerType && isOwnerOfType({ repo, type: ownerType })))
           .filter(isNotArchivedAndHaveAtLeastTenStars)
-          .map(repo => retrievePackageJsonFilesAndWorkflows({ repo, currentUser })),
+          .map(repo => retrievePackageJsonFilesAndWorkflows({ repo, currentUser: currentUser.data })),
       );
     })
   ).filter(filterOpinionatedRepoToAnalyse);

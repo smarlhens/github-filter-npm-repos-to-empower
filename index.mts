@@ -11,11 +11,21 @@ import {
   validatePackageJson as pinDependenciesValidatePackageJson,
   validatePackageLock as pinDependenciesValidatePackageLock,
 } from '@smarlhens/npm-pin-dependencies';
+import { createClient } from '@supabase/supabase-js';
 import minimist from 'minimist';
+
+import type { Database } from './supabase.mjs';
 
 export const octokit = new Octokit({
   auth: process.env.TOKEN,
 });
+
+export const supabase = createClient<Database>(process.env.SUPABASE_URL!, process.env.SUPABASE_KEY!);
+
+export const getRepositories = () => supabase.from('repositories').select('id, owner, name');
+
+type RepositoriesResponse = Awaited<ReturnType<typeof getRepositories>>;
+type RepositoriesResponseSuccess = RepositoriesResponse['data'];
 
 export const argv = minimist(process.argv.slice(2));
 const ownerTypes = ['user', 'organization'] as const;
@@ -328,3 +338,13 @@ const checkIfRepoIsForked = ({
       debug(`${currentUser.login} does not have a fork of ${owner}/${repoName}`);
       return false;
     });
+
+export const repositoryHasAlreadyBeenCloned = ({
+  repo,
+  repositories,
+}: {
+  repo: GitHubRepository;
+  repositories: RepositoriesResponseSuccess;
+}): boolean => {
+  return !repositories?.find(r => r.owner === repo.owner.name && r.name === repo.name);
+};
