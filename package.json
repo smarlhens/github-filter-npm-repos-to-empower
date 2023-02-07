@@ -44,7 +44,7 @@
     "@types/minimist": "1.2.2",
     "@types/node": "18.11.19",
     "husky": "8.0.3",
-    "lint-staged": "13.1.0",
+    "lint-staged": "13.1.1",
     "prettier": "2.8.3",
     "sort-package-json": "2.4.1",
     "ts-node": "10.9.1",
