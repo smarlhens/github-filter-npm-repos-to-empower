@@ -333,11 +333,8 @@ const checkIfRepoIsForked = ({
   repoName: string;
   currentUser: GitHubUser;
 }): Promise<boolean> =>
-  octokit.repos
-    .createFork({
-      owner,
-      repo: repoName,
-    })
+  octokit
+    .request(`GET /repos/${owner}/${repoName}/forks/${currentUser.login}`)
     .then(() => {
       debug(`${currentUser.login} does have a fork of ${owner}/${repoName}`);
       return true;
