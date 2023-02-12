@@ -55,6 +55,7 @@ export type Context = {
   hasYarnLock?: boolean | undefined;
   hasPnpmLock?: boolean | undefined;
   hasNpmShrinkwrap?: boolean | undefined;
+  hasPullRequestTemplate?: boolean | undefined;
 };
 
 const hasFile = async ({
@@ -261,6 +262,7 @@ export const retrievePackageJsonFilesAndWorkflows = async ({
     hasYarnLock,
     hasPnpmLock,
     hasNpmShrinkwrap,
+    hasPullRequestTemplate,
   ] = await Promise.all([
     getFile({ owner, repoName, fileName: 'package.json' }),
     getFile({ owner, repoName, fileName: 'package-lock.json' }).then(async file => {
@@ -284,6 +286,7 @@ export const retrievePackageJsonFilesAndWorkflows = async ({
     hasFile({ owner, repoName, fileName: 'yarn.lock' }),
     hasFile({ owner, repoName, fileName: 'pnpm-lock.yaml' }),
     hasFile({ owner, repoName, fileName: 'npm-shrinkwrap.json' }),
+    checkIfRepoHasPullRequestTemplate({ owner, repoName }),
   ]);
   return {
     repo,
@@ -294,6 +297,7 @@ export const retrievePackageJsonFilesAndWorkflows = async ({
     hasYarnLock,
     hasPnpmLock,
     hasNpmShrinkwrap,
+    hasPullRequestTemplate,
   };
 };
 
@@ -312,7 +316,8 @@ export const filterOpinionatedRepoToAnalyse = (ctx: Context): boolean =>
   !ctx.isRepoForked &&
   !ctx.hasPnpmLock &&
   !ctx.hasYarnLock &&
-  !ctx.hasNpmShrinkwrap;
+  !ctx.hasNpmShrinkwrap &&
+  !ctx.hasPullRequestTemplate;
 
 export const contextToOutput = (ctx: Context): { name: string; owner: string } => ({
   name: ctx.repo.name,
@@ -328,8 +333,11 @@ const checkIfRepoIsForked = ({
   repoName: string;
   currentUser: GitHubUser;
 }): Promise<boolean> =>
-  octokit
-    .request(`GET /repos/${owner}/${repoName}/forks/${currentUser.login}`)
+  octokit.repos
+    .createFork({
+      owner,
+      repo: repoName,
+    })
     .then(() => {
       debug(`${currentUser.login} does have a fork of ${owner}/${repoName}`);
       return true;
@@ -348,3 +356,24 @@ export const repositoryHasAlreadyBeenCloned = ({
 }): boolean => {
   return !repositories?.find(r => r.owner === repo.owner.name && r.name === repo.name);
 };
+
+const checkIfRepoHasPullRequestTemplate = ({
+  owner,
+  repoName,
+}: {
+  owner: string;
+  repoName: string;
+}): Promise<boolean> =>
+  octokit.repos
+    .getCommunityProfileMetrics({
+      owner,
+      repo: repoName,
+    })
+    .then(() => {
+      debug(`${owner}/${repoName}: pull request template found!`);
+      return true;
+    })
+    .catch(() => {
+      debug(`${owner}/${repoName}: pull request template not found!`);
+      return false;
+    });

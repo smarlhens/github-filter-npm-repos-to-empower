@@ -27,8 +27,8 @@
     "lint-staged": "lint-staged",
     "precommit": "npm run lint-staged",
     "prepare": "husky install",
-    "prettier:check": "prettier --check ./**/*.{ts,json,yml,md}",
-    "prettier:write": "prettier --write ./**/*.{ts,json,yml,md}"
+    "prettier:check": "prettier --check ./**/*.{mts,js,json,yml,md}",
+    "prettier:write": "prettier --write ./**/*.{mts,js,json,yml,md}"
   },
   "dependencies": {
     "@actions/core": "1.10.0",
