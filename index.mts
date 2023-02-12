@@ -369,9 +369,10 @@ const checkIfRepoHasPullRequestTemplate = ({
       owner,
       repo: repoName,
     })
-    .then(() => {
-      debug(`${owner}/${repoName}: pull request template found!`);
-      return true;
+    .then(payload => {
+      const hasPullRequestTemplate: boolean = payload.data.files.pull_request_template !== null;
+      debug(`${owner}/${repoName}: pull request template${hasPullRequestTemplate ? ' ' : ' not '}found!`);
+      return hasPullRequestTemplate;
     })
     .catch(() => {
       debug(`${owner}/${repoName}: pull request template not found!`);
