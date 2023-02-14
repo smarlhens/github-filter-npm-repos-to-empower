@@ -39,8 +39,8 @@
     "minimist": "1.2.8"
   },
   "devDependencies": {
-    "@commitlint/cli": "17.4.2",
-    "@commitlint/config-conventional": "17.4.2",
+    "@commitlint/cli": "17.4.3",
+    "@commitlint/config-conventional": "17.4.3",
     "@trivago/prettier-plugin-sort-imports": "4.0.0",
     "@types/minimist": "1.2.2",
     "@types/node": "18.13.0",
