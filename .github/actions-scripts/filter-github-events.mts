@@ -58,7 +58,15 @@ const main = async (): Promise<void> => {
   ).filter(filterOpinionatedRepoToAnalyse);
 
   debug(`${contexts.length} repos filtered on package.json, package-lock.json, stars & CI job on pull requests`);
-  debug(contexts.map(contextToOutput).join(', '));
+
+  if (contexts.length > 0) {
+    debug(
+      contexts
+        .map(contextToOutput)
+        .map(ctx => JSON.stringify(ctx))
+        .join(', '),
+    );
+  }
 
   const reposToFork = contexts.filter(ctx => areDependenciesPinnedAndEnginesSet({ ctx, repositories }));
 

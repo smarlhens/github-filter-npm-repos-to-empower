@@ -32,12 +32,14 @@ type PullRequests =
       status: string;
     }[]
   | null;
-export type RepositoriesResponseSuccess = {
-  id: string;
-  name: string;
-  owner: string;
-  pull_requests: PullRequests;
-}[];
+export type RepositoriesResponseSuccess =
+  | {
+      id: string;
+      name: string;
+      owner: string;
+      pull_requests: PullRequests;
+    }[]
+  | null;
 
 export const getRepositories = (): Awaited<RepositoriesResponseSuccess> =>
   supabase.from('repositories').select('id, owner, name, pull_requests(id, kind, merged, status)') as any;
@@ -438,7 +440,7 @@ export const canForkRepository = ({
   repo: GitHubRepository;
   repositories: RepositoriesResponseSuccess;
 }): boolean => {
-  return typeof repositories === 'undefined'
+  return typeof repositories === 'undefined' || repositories === null
     ? false
     : !repositories.some(
         r =>
