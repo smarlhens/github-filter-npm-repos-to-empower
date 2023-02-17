@@ -11,7 +11,6 @@ import {
   isNotArchivedAndHaveAtLeastTenStars,
   isOwnerOfType,
   octokit,
-  repositoryHasAlreadyBeenCloned,
   retrievePackageJsonFilesAndWorkflows,
 } from '../../index.mjs';
 
@@ -51,7 +50,6 @@ const main = async (): Promise<void> => {
       return Promise.all(
         payload
           .filter(filterUndefinedRepo)
-          .filter(repo => repositoryHasAlreadyBeenCloned({ repo, repositories: repositories.data }))
           .filter(repo => !ownerType || (ownerType && isOwnerOfType({ repo, type: ownerType })))
           .filter(isNotArchivedAndHaveAtLeastTenStars)
           .map(repo => retrievePackageJsonFilesAndWorkflows({ repo, currentUser: currentUser.data })),
@@ -60,8 +58,9 @@ const main = async (): Promise<void> => {
   ).filter(filterOpinionatedRepoToAnalyse);
 
   debug(`${contexts.length} repos filtered on package.json, package-lock.json, stars & CI job on pull requests`);
+  debug(contexts.map(contextToOutput).join(', '));
 
-  const reposToFork = contexts.filter(areDependenciesPinnedAndEnginesSet);
+  const reposToFork = contexts.filter(ctx => areDependenciesPinnedAndEnginesSet({ ctx, repositories }));
 
   debug(`${reposToFork.length} repos to fork`);
 
