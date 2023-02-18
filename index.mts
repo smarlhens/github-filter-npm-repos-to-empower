@@ -12,7 +12,7 @@ import {
   validatePackageLock as pinDependenciesValidatePackageLock,
 } from '@smarlhens/npm-pin-dependencies';
 import { createClient } from '@supabase/supabase-js';
-import isEqual from 'lodash.isequal';
+import { isArray, isEqual } from 'lodash-es';
 import minimist from 'minimist';
 import sortPackageJson from 'sort-package-json';
 
@@ -41,8 +41,11 @@ export type RepositoriesResponseSuccess =
     }[]
   | null;
 
-export const getRepositories = (): Awaited<RepositoriesResponseSuccess> =>
-  supabase.from('repositories').select('id, owner, name, pull_requests(id, kind, merged, status)') as any;
+export const getRepositories = (): Promise<RepositoriesResponseSuccess> =>
+  supabase
+    .from('repositories')
+    .select('id, owner, name, pull_requests(id, kind, merged, status)')
+    .then(payload => payload.data) as any;
 
 export const argv = minimist(process.argv.slice(2));
 const ownerTypes = ['user', 'organization'] as const;
@@ -440,16 +443,16 @@ export const canForkRepository = ({
   repo: GitHubRepository;
   repositories: RepositoriesResponseSuccess;
 }): boolean => {
-  return typeof repositories === 'undefined' || repositories === null
-    ? false
-    : !repositories.some(
+  return isArray(repositories)
+    ? !repositories.some(
         r =>
           r.owner === repo.owner.name &&
           r.name === repo.name &&
           ((r.pull_requests as PullRequests) || []).some(
             pr => pr.kind === kind && pr.status === 'closed' && pr.merged === false,
           ),
-      );
+      )
+    : false;
 };
 
 const checkIfRepoHasPullRequestTemplate = ({
