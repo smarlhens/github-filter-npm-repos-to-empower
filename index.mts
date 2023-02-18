@@ -397,6 +397,33 @@ export const isOwnerOfType = ({ repo, type }: { repo: GitHubRepository; type: Ow
 export const isNotArchivedAndHaveAtLeastTenStars = (repo: GitHubRepository): boolean =>
   !repo.archived && repo.stargazers_count > 10;
 
+const isRepoHostedOnGithub = ({ packageJsonFile }: { packageJsonFile?: RepositoryFile | undefined }): boolean => {
+  if (!packageJsonFile) {
+    return false;
+  }
+
+  let packageJsonString = packageJsonFile!.content;
+  if (packageJsonFile!.encoding === 'base64') {
+    packageJsonString = atob(packageJsonString);
+  }
+
+  const packageJsonObject = JSON.parse(packageJsonString);
+
+  if (!('repository' in packageJsonObject)) {
+    return true;
+  }
+
+  if (typeof packageJsonObject.repository === 'string') {
+    return packageJsonObject.repository.includes('github:') || packageJsonObject.repository.includes('github.com');
+  }
+
+  if (!('url' in packageJsonObject.repository)) {
+    return true;
+  }
+
+  return packageJsonObject.repository.url.includes('github.com');
+};
+
 export const filterOpinionatedRepoToAnalyse = (ctx: Context): boolean =>
   !!ctx.packageJsonFile &&
   !!ctx.packageLockJsonFile &&
@@ -407,7 +434,8 @@ export const filterOpinionatedRepoToAnalyse = (ctx: Context): boolean =>
   !ctx.hasPnpmLock &&
   !ctx.hasYarnLock &&
   !ctx.hasNpmShrinkwrap &&
-  !ctx.hasPullRequestTemplate;
+  !ctx.hasPullRequestTemplate &&
+  isRepoHostedOnGithub({ packageJsonFile: ctx.packageJsonFile });
 
 export const contextToOutput = (ctx: Context): { name: string; owner: string } => ({
   name: ctx.repo.name,
