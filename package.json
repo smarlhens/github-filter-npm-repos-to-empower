@@ -33,7 +33,7 @@
   "dependencies": {
     "@actions/core": "1.10.0",
     "@octokit/rest": "19.0.7",
-    "@smarlhens/npm-check-engines": "0.10.0",
+    "@smarlhens/npm-check-engines": "0.11.0",
     "@smarlhens/npm-pin-dependencies": "0.4.2",
     "@supabase/supabase-js": "2.8.0",
     "lodash-es": "4.17.21",
