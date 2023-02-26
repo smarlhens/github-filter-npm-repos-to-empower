@@ -11,16 +11,17 @@ import {
   isNotArchivedAndHaveAtLeastTenStars,
   isOwnerOfType,
   octokit,
+  octokitBot,
   retrievePackageJsonFilesAndWorkflows,
-} from '../../index.mjs';
+} from '../../src/index.mjs';
 
 const main = async (): Promise<void> => {
   debug('Start main function');
 
   const ownerType = getOwnerType();
-  const [repositories, currentUser, events] = await Promise.all([
+  const [repositories, botUser, events] = await Promise.all([
     getRepositories(),
-    octokit.users.getAuthenticated(),
+    octokitBot.users.getAuthenticated(),
     octokit.paginate('GET /events', { per_page: 100 }),
   ]);
   debug(`${events.length} events received`);
@@ -64,7 +65,7 @@ const main = async (): Promise<void> => {
   const contexts: Context[] = (
     await Promise.all(
       eventRepositoriesFilterStarsAndState.map(repo =>
-        retrievePackageJsonFilesAndWorkflows({ repo, currentUser: currentUser.data }),
+        retrievePackageJsonFilesAndWorkflows({ repo, user: botUser.data }),
       ),
     )
   ).filter(filterOpinionatedRepoToAnalyse);

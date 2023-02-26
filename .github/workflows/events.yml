@@ -34,7 +34,8 @@ jobs:
       - name: Filter events
         id: filter_events
         env:
-          TOKEN: ${{ secrets.PAT }}
+          GITHUB_TOKEN: ${{ secrets.PAT }}
+          GITHUB_BOT_TOKEN: ${{ secrets.BOT_PAT }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
         run: npm run filter-github-events
@@ -47,5 +48,5 @@ jobs:
         with:
           script: |
             const { REPOS } = process.env;
-            const script = require('${{ github.workspace }}/comment-issue-on-filter-events.js');
+            const script = require('${{ github.workspace }}/src/comment-issue-on-filter-events.js');
             await script({ github, context, repos: REPOS })

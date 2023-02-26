@@ -8,8 +8,8 @@ import {
 } from '@smarlhens/npm-check-engines';
 import {
   pinDependenciesFromString,
-  validatePackageJson as pinDependenciesValidatePackageJson,
-  validatePackageLock as pinDependenciesValidatePackageLock,
+  validatePackageJsonString as pinDependenciesValidatePackageJson,
+  validatePackageLockString as pinDependenciesValidatePackageLock,
 } from '@smarlhens/npm-pin-dependencies';
 import { createClient } from '@supabase/supabase-js';
 import { isArray, isEqual } from 'lodash-es';
@@ -19,7 +19,11 @@ import sortPackageJson from 'sort-package-json';
 import type { Database } from './supabase.mjs';
 
 export const octokit = new Octokit({
-  auth: process.env.TOKEN,
+  auth: process.env.GITHUB_TOKEN,
+});
+
+export const octokitBot = new Octokit({
+  auth: process.env.GITHUB_BOT_TOKEN,
 });
 
 export const supabase = createClient<Database>(process.env.SUPABASE_URL!, process.env.SUPABASE_KEY!);
@@ -198,74 +202,82 @@ const checkCIOnPullRequests = async ({ repoName, owner }: { owner: string; repoN
   return found;
 };
 
-const shouldForkToPinDependencies = ({
+export const shouldPinDependencies = ({
   packageLockString,
   packageJsonString,
-  ctx,
+  repo,
   repositories,
+  logger,
 }: {
   packageLockString: string;
   packageJsonString: string;
-  ctx: Context;
+  repo: { full_name: string; name: string; owner: { login: string } };
   repositories: RepositoriesResponseSuccess;
-}): boolean => {
+  logger: (message: string) => void;
+}): object | undefined => {
   let pinDependenciesValidPackageJson = false;
   try {
     pinDependenciesValidPackageJson = pinDependenciesValidatePackageJson({ packageJsonString });
   } catch (_) {
-    debug(`${ctx.repo.full_name}: invalid package.json for pinning dependencies.`);
+    logger(`${repo.full_name}: invalid package.json for pinning dependencies.`);
   }
 
   let pinDependenciesValidPackageLock = false;
   try {
     pinDependenciesValidPackageLock = pinDependenciesValidatePackageLock({ packageLockString });
   } catch (_) {
-    debug(`${ctx.repo.full_name}: invalid package-lock.json for pinning dependencies.`);
+    logger(`${repo.full_name}: invalid package-lock.json for pinning dependencies.`);
   }
 
+  let packageJson = undefined;
   let versionsToPin = [];
   if (pinDependenciesValidPackageJson && pinDependenciesValidPackageLock) {
-    ({ versionsToPin } = pinDependenciesFromString({
+    ({ versionsToPin, packageJson } = pinDependenciesFromString({
       packageJsonString,
       packageLockString,
     }));
   }
 
   if (versionsToPin.length > 0) {
-    debug(`${ctx.repo.full_name}: ${versionsToPin.length} dependencies to pin.`);
+    logger(`${repo.full_name}: ${versionsToPin.length} dependencies to pin.`);
   }
 
-  return versionsToPin.length > 0 && canForkRepository({ repo: ctx.repo, kind: 'npm-pin-dependencies', repositories });
+  return versionsToPin.length > 0 && canForkRepository({ repo, kind: 'npm-pin-dependencies', repositories })
+    ? packageJson
+    : undefined;
 };
 
 const shouldForkToCheckEngines = ({
   packageLockString,
   packageJsonString,
-  ctx,
+  repo,
   repositories,
+  logger,
 }: {
   packageLockString: string;
   packageJsonString: string;
-  ctx: Context;
+  repo: { full_name: string; name: string; owner: { login: string } };
   repositories: RepositoriesResponseSuccess;
-}): boolean => {
+  logger: (message: string) => void;
+}): object | undefined => {
   let checkEnginesValidPackageJson = false;
   try {
     checkEnginesValidPackageJson = checkEnginesValidatePackageJson({ packageJsonString });
   } catch (_) {
-    debug(`${ctx.repo.full_name}: invalid package.json for engines check.`);
+    logger(`${repo.full_name}: invalid package.json for engines check.`);
   }
 
   let checkEnginesValidPackageLock = false;
   try {
     checkEnginesValidPackageLock = checkEnginesValidatePackageLock({ packageLockString });
   } catch (_) {
-    debug(`${ctx.repo.full_name}: invalid package-lock.json for engines check.`);
+    logger(`${repo.full_name}: invalid package-lock.json for engines check.`);
   }
 
+  let packageJson = undefined;
   let enginesRangeToSet = [];
   if (checkEnginesValidPackageJson && checkEnginesValidPackageLock) {
-    ({ enginesRangeToSet } = checkEnginesFromString({
+    ({ enginesRangeToSet, packageJson } = checkEnginesFromString({
       engines: ['npm', 'node'],
       packageJsonString,
       packageLockString,
@@ -273,28 +285,34 @@ const shouldForkToCheckEngines = ({
   }
 
   if (enginesRangeToSet.length > 0) {
-    debug(`${ctx.repo.full_name} has ${enginesRangeToSet.length} engine ranges to set.`);
+    logger(`${repo.full_name} has ${enginesRangeToSet.length} engine ranges to set.`);
   }
 
-  return enginesRangeToSet.length > 0 && canForkRepository({ repo: ctx.repo, kind: 'npm-check-engines', repositories });
+  return enginesRangeToSet.length > 0 && canForkRepository({ repo, kind: 'npm-check-engines', repositories })
+    ? packageJson
+    : undefined;
 };
 
 const shouldForkToSort = ({
   packageJsonString,
-  ctx,
+  repo,
   repositories,
+  logger,
 }: {
   packageJsonString: string;
-  ctx: Context;
+  repo: { full_name: string; name: string; owner: { login: string } };
   repositories: RepositoriesResponseSuccess;
-}): boolean => {
-  const requireFork: boolean = isEqual(JSON.parse(packageJsonString), sortPackageJson(packageJsonString));
+  logger: (message: string) => void;
+}): object | undefined => {
+  const packageJsonObject = JSON.parse(packageJsonString);
+  const packageJsonSorted = sortPackageJson(packageJsonObject);
+  const requireFork: boolean = isEqual(packageJsonObject, packageJsonSorted);
 
-  if (requireFork) {
-    debug(`${ctx.repo.full_name} has package.json to sort.`);
-  }
+  logger(`${repo.full_name}: package.json${requireFork ? '' : ' not'} to sort.`);
 
-  return requireFork && canForkRepository({ repo: ctx.repo, kind: 'sort-package-json', repositories });
+  return requireFork && canForkRepository({ repo, kind: 'sort-package-json', repositories })
+    ? packageJsonSorted
+    : undefined;
 };
 
 export const areDependenciesPinnedAndEnginesSet = ({
@@ -316,32 +334,35 @@ export const areDependenciesPinnedAndEnginesSet = ({
   }
 
   return (
-    shouldForkToPinDependencies({
-      ctx,
+    typeof shouldPinDependencies({
+      repo: ctx.repo,
       packageJsonString,
       packageLockString,
       repositories,
-    }) ||
-    shouldForkToCheckEngines({
-      ctx,
+      logger: debug,
+    }) === 'object' ||
+    typeof shouldForkToCheckEngines({
+      repo: ctx.repo,
       packageJsonString,
       packageLockString,
       repositories,
-    }) ||
-    shouldForkToSort({
-      ctx,
+      logger: debug,
+    }) === 'object' ||
+    typeof shouldForkToSort({
+      repo: ctx.repo,
       packageJsonString,
       repositories,
-    })
+      logger: debug,
+    }) === 'object'
   );
 };
 
 export const retrievePackageJsonFilesAndWorkflows = async ({
   repo,
-  currentUser,
+  user,
 }: {
   repo: GitHubRepository;
-  currentUser: GitHubUser;
+  user: GitHubUser;
 }): Promise<Context> => {
   const [owner, repoName] = repo.full_name.split('/');
   const [
@@ -372,7 +393,7 @@ export const retrievePackageJsonFilesAndWorkflows = async ({
       return { ...file, lastModifiedAt: lastCommit.commit.committer!.date! };
     }),
     checkCIOnPullRequests({ owner, repoName }),
-    checkIfRepoIsForked({ owner, repoName, currentUser }),
+    checkIfRepoIsForked({ owner, repoName, user }),
     hasFile({ owner, repoName, fileName: 'yarn.lock' }),
     hasFile({ owner, repoName, fileName: 'pnpm-lock.yaml' }),
     hasFile({ owner, repoName, fileName: 'npm-shrinkwrap.json' }),
@@ -445,20 +466,20 @@ export const contextToOutput = (ctx: Context): { name: string; owner: string } =
 const checkIfRepoIsForked = ({
   owner,
   repoName,
-  currentUser,
+  user,
 }: {
   owner: string;
   repoName: string;
-  currentUser: GitHubUser;
+  user: GitHubUser;
 }): Promise<boolean> =>
-  octokit
-    .request(`GET /repos/${owner}/${repoName}/forks/${currentUser.login}`)
+  octokitBot
+    .request(`GET /repos/${owner}/${repoName}/forks/${user.login}`)
     .then(() => {
-      debug(`${owner}/${repoName}: is already forked by ${currentUser.login}`);
+      debug(`${owner}/${repoName}: is already forked by ${user.login}`);
       return true;
     })
     .catch(() => {
-      debug(`${owner}/${repoName}: is not yet forked by ${currentUser.login}`);
+      debug(`${owner}/${repoName}: is not yet forked by ${user.login}`);
       return false;
     });
 
@@ -468,13 +489,13 @@ export const canForkRepository = ({
   repositories,
 }: {
   kind: string;
-  repo: GitHubRepository;
+  repo: { owner: { login: string }; name: string };
   repositories: RepositoriesResponseSuccess;
 }): boolean => {
   return isArray(repositories)
     ? !repositories.some(
         r =>
-          r.owner === repo.owner.name &&
+          r.owner === repo.owner.login &&
           r.name === repo.name &&
           ((r.pull_requests as PullRequests) || []).some(
             pr => pr.kind === kind && pr.status === 'closed' && pr.merged === false,
