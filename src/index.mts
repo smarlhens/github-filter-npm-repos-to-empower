@@ -418,45 +418,73 @@ export const isOwnerOfType = ({ repo, type }: { repo: GitHubRepository; type: Ow
 export const isNotArchivedAndHaveAtLeastTenStars = (repo: GitHubRepository): boolean =>
   !repo.archived && repo.stargazers_count > 10;
 
-const isRepoHostedOnGithub = ({ packageJsonFile }: { packageJsonFile?: RepositoryFile | undefined }): boolean => {
-  if (!packageJsonFile) {
+const isRepoHostedOnGithub = ({
+  packageJsonObject,
+  repo,
+}: {
+  packageJsonObject: { repository?: { url?: string } | string };
+  repo: GitHubRepository;
+}): boolean => {
+  if (!('repository' in packageJsonObject)) {
+    debug(`${repo.full_name}: package.json repository is undefined, assuming repo is hosted on GitHub.`);
+    return true;
+  }
+
+  if (typeof packageJsonObject.repository === 'string') {
+    const isHostedOnGithub =
+      packageJsonObject.repository.includes('github:') || packageJsonObject.repository.includes('github.com');
+    debug(`${repo.full_name}: is${isHostedOnGithub ? '' : ' not'} hosted on GitHub.`);
+    return isHostedOnGithub;
+  }
+
+  if (!('url' in packageJsonObject.repository)) {
+    debug(`${repo.full_name}: package.json repository url is undefined, assuming repo is hosted on GitHub.`);
+    return true;
+  }
+
+  const isHostedOnGithub = packageJsonObject.repository.url.includes('github.com');
+  debug(`${repo.full_name}: is${isHostedOnGithub ? '' : ' not'} hosted on GitHub.`);
+  return isHostedOnGithub;
+};
+
+const isNpmWorkspace = ({
+  packageJsonObject,
+  repo,
+}: {
+  packageJsonObject: { workspaces?: unknown[] };
+  repo: GitHubRepository;
+}): boolean => {
+  const isWorkspace = 'workspaces' in packageJsonObject;
+  debug(`${repo.full_name}: is${isWorkspace ? '' : ' not'} a npm workspace.`);
+  return isWorkspace;
+};
+
+export const filterOpinionatedRepoToAnalyse = (ctx: Context): boolean => {
+  if (!ctx.packageLockJsonFile) {
     return false;
   }
 
-  let packageJsonString = packageJsonFile!.content;
-  if (packageJsonFile!.encoding === 'base64') {
+  let packageJsonString = ctx.packageLockJsonFile!.content;
+  if (ctx.packageLockJsonFile!.encoding === 'base64') {
     packageJsonString = atob(packageJsonString);
   }
 
   const packageJsonObject = JSON.parse(packageJsonString);
 
-  if (!('repository' in packageJsonObject)) {
-    return true;
-  }
-
-  if (typeof packageJsonObject.repository === 'string') {
-    return packageJsonObject.repository.includes('github:') || packageJsonObject.repository.includes('github.com');
-  }
-
-  if (!('url' in packageJsonObject.repository)) {
-    return true;
-  }
-
-  return packageJsonObject.repository.url.includes('github.com');
+  return (
+    !!ctx.packageLockJsonFile &&
+    !!ctx.packageLockJsonFile.lastModifiedAt &&
+    new Date().getTime() - new Date(ctx.packageLockJsonFile.lastModifiedAt).getTime() < 15768000000 &&
+    !!ctx.hasCIOnPullRequests &&
+    !ctx.isRepoForked &&
+    !ctx.hasPnpmLock &&
+    !ctx.hasYarnLock &&
+    !ctx.hasNpmShrinkwrap &&
+    !ctx.hasPullRequestTemplate &&
+    isRepoHostedOnGithub({ packageJsonObject, repo: ctx.repo }) &&
+    !isNpmWorkspace({ packageJsonObject, repo: ctx.repo })
+  );
 };
-
-export const filterOpinionatedRepoToAnalyse = (ctx: Context): boolean =>
-  !!ctx.packageJsonFile &&
-  !!ctx.packageLockJsonFile &&
-  !!ctx.packageLockJsonFile.lastModifiedAt &&
-  new Date().getTime() - new Date(ctx.packageLockJsonFile.lastModifiedAt).getTime() < 15768000000 &&
-  !!ctx.hasCIOnPullRequests &&
-  !ctx.isRepoForked &&
-  !ctx.hasPnpmLock &&
-  !ctx.hasYarnLock &&
-  !ctx.hasNpmShrinkwrap &&
-  !ctx.hasPullRequestTemplate &&
-  isRepoHostedOnGithub({ packageJsonFile: ctx.packageJsonFile });
 
 export const contextToOutput = (ctx: Context): { name: string; owner: string } => ({
   name: ctx.repo.name,
