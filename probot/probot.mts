@@ -1,6 +1,8 @@
 import type { components } from '@octokit/openapi-types';
 import type { Octokit } from '@octokit/rest';
 import type { Repository } from '@octokit/webhooks-types';
+import detectIndent from 'detect-indent';
+import { detectNewline } from 'detect-newline';
 import 'dotenv/config';
 import editorconfig from 'editorconfig';
 import Handlebars from 'handlebars';
@@ -82,14 +84,17 @@ const app = (app: Probot): void => {
 
   const cwd = process.cwd() + sep;
   const indentSize = ({
+    jsonString,
     editorConfigFile,
     filename,
   }: {
+    jsonString: string;
     filename: string;
     editorConfigFile?: RepositoryFile | undefined;
-  }): '\t' | number => {
+  }): '\t' | number | string => {
+    const indentFromString = detectIndent(jsonString);
     if (!editorConfigFile) {
-      return 2;
+      return indentFromString.indent;
     }
 
     const config = editorconfig.parseFromFilesSync(`${cwd}${filename}`, [
@@ -99,7 +104,7 @@ const app = (app: Probot): void => {
       },
     ]);
 
-    return typeof config.size === 'number' ? config.size : config.size === 'tab' ? '\t' : 2;
+    return typeof config.size === 'number' ? config.size : config.size === 'tab' ? '\t' : indentFromString.indent;
   };
 
   const updateRows = async ({
@@ -142,15 +147,26 @@ const app = (app: Probot): void => {
   };
 
   const prepareBase64Content = ({
-    raw,
+    jsonString,
+    jsonObject,
     filename,
     editorConfigFile,
   }: {
-    raw: object;
+    jsonString: string;
+    jsonObject: object;
     filename: string;
     editorConfigFile?: RepositoryFile | undefined;
   }): string => {
-    return Buffer.from(JSON.stringify(raw, null, indentSize({ filename, editorConfigFile })) + '\n').toString('base64');
+    const endCharacters = jsonString.slice(-1) === '\n' ? '\n' : '';
+    const newline = detectNewline(jsonString);
+
+    let result =
+      JSON.stringify(jsonObject, null, indentSize({ filename, editorConfigFile, jsonString })) + endCharacters;
+    if (newline === '\r\n') {
+      result = result.replace(/\n/g, newline);
+    }
+
+    return Buffer.from(result).toString('base64');
   };
 
   app.on('repository.created', async context => {
@@ -215,10 +231,11 @@ const app = (app: Probot): void => {
       path: '.editorconfig',
     });
 
-    const packageJsonFileRef = ({ packageJson }: { packageJson: object }) => ({
+    const preparePackageJsonFile = ({ packageJson }: { packageJson: object }) => ({
       path: 'package.json',
       content: prepareBase64Content({
-        raw: packageJson,
+        jsonString: packageJsonString,
+        jsonObject: packageJson,
         filename: 'package.json',
         editorConfigFile: editorConfigRaw,
       }),
@@ -248,7 +265,7 @@ const app = (app: Probot): void => {
             return [];
           }
 
-          return [packageJsonFileRef({ packageJson })];
+          return [preparePackageJsonFile({ packageJson })];
         },
       },
       {
@@ -274,11 +291,12 @@ const app = (app: Probot): void => {
           }
 
           return [
-            packageJsonFileRef({ packageJson: payload.packageJson }),
+            preparePackageJsonFile({ packageJson: payload.packageJson }),
             {
               path: 'package-lock.json',
               content: prepareBase64Content({
-                raw: payload.packageLock,
+                jsonString: packageLockString,
+                jsonObject: payload.packageLock,
                 filename: 'package-lock.json',
                 editorConfigFile: editorConfigRaw,
               }),
@@ -308,7 +326,7 @@ const app = (app: Probot): void => {
             return [];
           }
 
-          return [packageJsonFileRef({ packageJson })];
+          return [preparePackageJsonFile({ packageJson })];
         },
       },
     ];
