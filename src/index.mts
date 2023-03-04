@@ -312,7 +312,9 @@ export const shouldSortPackage = ({
 
   logger(`${repo.full_name}: package.json${requireFork ? '' : ' not'} to sort.`);
 
-  return requireFork && canForkRepository({ repo, kind: 'sort-package-json', repositories })
+  return requireFork &&
+    canForkRepository({ repo, kind: 'sort-package-json', repositories }) &&
+    !isEqual(packageJsonSorted, packageJsonObject)
     ? packageJsonSorted
     : undefined;
 };
