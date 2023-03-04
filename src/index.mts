@@ -247,7 +247,7 @@ export const shouldPinDependencies = ({
     : undefined;
 };
 
-const shouldForkToCheckEngines = ({
+export const shouldUpdateEngines = ({
   packageLockString,
   packageJsonString,
   repo,
@@ -259,7 +259,7 @@ const shouldForkToCheckEngines = ({
   repo: { full_name: string; name: string; owner: { login: string } };
   repositories: RepositoriesResponseSuccess;
   logger: (message: string) => void;
-}): object | undefined => {
+}): { packageJson: object; packageLock: object } | undefined => {
   let checkEnginesValidPackageJson = false;
   try {
     checkEnginesValidPackageJson = checkEnginesValidatePackageJson({ packageJsonString });
@@ -275,25 +275,27 @@ const shouldForkToCheckEngines = ({
   }
 
   let packageJson = undefined;
-  let enginesRangeToSet = [];
+  let packageLock = undefined;
+  let enginesRangeToSet: unknown[] = [];
   if (checkEnginesValidPackageJson && checkEnginesValidPackageLock) {
-    ({ enginesRangeToSet, packageJson } = checkEnginesFromString({
+    ({ enginesRangeToSet, packageJson, packageLock } = checkEnginesFromString({
       engines: ['npm', 'node'],
       packageJsonString,
       packageLockString,
     }));
   }
 
-  if (enginesRangeToSet.length > 0) {
-    logger(`${repo.full_name} has ${enginesRangeToSet.length} engine ranges to set.`);
-  }
+  logger(`${repo.full_name}: ${enginesRangeToSet.length} engine version ranges to set.`);
 
-  return enginesRangeToSet.length > 0 && canForkRepository({ repo, kind: 'npm-check-engines', repositories })
-    ? packageJson
+  return enginesRangeToSet.length > 0 &&
+    canForkRepository({ repo, kind: 'npm-check-engines', repositories }) &&
+    packageJson &&
+    packageLock
+    ? { packageJson, packageLock }
     : undefined;
 };
 
-const shouldForkToSort = ({
+export const shouldSortPackage = ({
   packageJsonString,
   repo,
   repositories,
@@ -341,14 +343,14 @@ export const areDependenciesPinnedAndEnginesSet = ({
       repositories,
       logger: debug,
     }) === 'object' ||
-    typeof shouldForkToCheckEngines({
+    typeof shouldUpdateEngines({
       repo: ctx.repo,
       packageJsonString,
       packageLockString,
       repositories,
       logger: debug,
     }) === 'object' ||
-    typeof shouldForkToSort({
+    typeof shouldSortPackage({
       repo: ctx.repo,
       packageJsonString,
       repositories,
@@ -460,12 +462,12 @@ const isNpmWorkspace = ({
 };
 
 export const filterOpinionatedRepoToAnalyse = (ctx: Context): boolean => {
-  if (!ctx.packageLockJsonFile) {
+  if (!ctx.packageJsonFile) {
     return false;
   }
 
-  let packageJsonString = ctx.packageLockJsonFile!.content;
-  if (ctx.packageLockJsonFile!.encoding === 'base64') {
+  let packageJsonString = ctx.packageJsonFile!.content;
+  if (ctx.packageJsonFile!.encoding === 'base64') {
     packageJsonString = atob(packageJsonString);
   }
 

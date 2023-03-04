@@ -48,5 +48,5 @@ jobs:
         with:
           script: |
             const { REPOS } = process.env;
-            const script = require('${{ github.workspace }}/src/comment-issue-on-filter-events.js');
+            const script = require('${{ github.workspace }}/.github/github-scripts/comment-issue-on-filter-events.js');
             await script({ github, context, repos: REPOS })

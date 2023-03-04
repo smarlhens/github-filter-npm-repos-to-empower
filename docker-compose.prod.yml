@@ -1,0 +1,9 @@
+version: '3.8'
+
+services:
+  probot:
+    container_name: probot_app_empower_npm_repos
+    image: 'ghcr.io/smarlhens/probot-app-empower-npm-repos:main'
+    restart: always
+    env_file: ./.env
+    tty: true
