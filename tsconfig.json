@@ -38,5 +38,5 @@
     "importsNotUsedAsValues": "error",
     "checkJs": true
   },
-  "include": [".github/actions-scripts/filter-github-events.mts", ".github/actions-scripts/filter-github-repos.mts"]
+  "include": ["probot"]
 }
