@@ -14,5 +14,6 @@
       "matchDepTypes": ["optionalDependencies"],
       "addLabels": ["optional"]
     }
-  ]
+  ],
+  "ignorePaths": ["Dockerfile"]
 }
