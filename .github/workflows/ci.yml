@@ -117,6 +117,6 @@ jobs:
           script: |
             cd $TARGET
             docker login ghcr.io -u smarlhens -p $PAT
-            docker-compose -f docker-compose.staging.yml pull
-            docker-compose -f docker-compose.staging.yml up -d --build --no-deps
+            docker-compose -f docker-compose.prod.yml pull
+            docker-compose -f docker-compose.prod.yml up -d --build --no-deps
             docker logout ghcr.io
