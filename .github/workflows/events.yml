@@ -42,8 +42,8 @@ jobs:
         timeout-minutes: 5
       #      - name: Add repos filtered to issue
       #        uses: actions/github-script@v6
+      #        github-token: ${{ secrets.GITHUB_TOKEN }}
       #        env:
-      #          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       #          REPOS: ${{ steps.filter_events.outputs.repos }}
       #        with:
       #          script: |
@@ -52,11 +52,11 @@ jobs:
       #            await script({ github, context, repos: REPOS })
       - name: Fork repo using bot account
         uses: actions/github-script@v6
+        github-token: ${{ secrets.BOT_PAT }}
         env:
-          GITHUB_TOKEN: ${{ secrets.BOT_PAT }}
           REPOS: ${{ steps.filter_events.outputs.repos }}
         with:
           script: |
             const { REPOS } = process.env;
             const script = require('${{ github.workspace }}/.github/github-scripts/fork-repo-using-bot-account.js');
-            await script({ github, context, repos: REPOS })
+            await script({ github, repos: REPOS })
