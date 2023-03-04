@@ -12,6 +12,8 @@ COPY . .
 
 RUN npm run build
 
+COPY ./probot/templates ./dist/probot/templates
+
 FROM node:16.19.1-alpine3.17
 
 ENV NODE_ENV production
