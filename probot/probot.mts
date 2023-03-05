@@ -137,7 +137,7 @@ const app = (app: Probot): void => {
           repo: inDBRepository.data!.id,
           kind,
           merged: false,
-          status: 'opened',
+          state: 'open',
           number: pullRequest.number,
         },
       ])

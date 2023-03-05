@@ -9,8 +9,7 @@ export interface Database {
           merged: boolean;
           number: number;
           repo: string;
-          status: string;
-          url: string | null;
+          state: string;
         };
         Insert: {
           created_at?: string;
@@ -19,8 +18,7 @@ export interface Database {
           merged?: boolean;
           number: number;
           repo: string;
-          status: string;
-          url?: string | null;
+          state: string;
         };
         Update: {
           created_at?: string;
@@ -29,8 +27,7 @@ export interface Database {
           merged?: boolean;
           number?: number;
           repo?: string;
-          status?: string;
-          url?: string | null;
+          state?: string;
         };
       };
       repositories: {

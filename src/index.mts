@@ -33,7 +33,7 @@ type PullRequests =
       id: string;
       kind: string;
       merged: boolean;
-      status: string;
+      state: string;
     }[]
   | null;
 export type RepositoriesResponseSuccess =
@@ -48,7 +48,7 @@ export type RepositoriesResponseSuccess =
 export const getRepositories = (): Promise<RepositoriesResponseSuccess> =>
   supabase
     .from('repositories')
-    .select('id, owner, name, pull_requests(id, kind, merged, status)')
+    .select('id, owner, name, pull_requests(id, kind, merged, state)')
     .then(payload => payload.data) as any;
 
 export const argv = minimist(process.argv.slice(2));
@@ -537,9 +537,7 @@ export const canForkRepository = ({
         r =>
           r.owner === repo.owner.login &&
           r.name === repo.name &&
-          ((r.pull_requests as PullRequests) || []).some(
-            pr => pr.kind === kind && pr.status === 'closed' && pr.merged === false,
-          ),
+          ((r.pull_requests as PullRequests) || []).some(pr => pr.kind === kind && pr.state === 'closed' && !pr.merged),
       )
     : false;
 };
