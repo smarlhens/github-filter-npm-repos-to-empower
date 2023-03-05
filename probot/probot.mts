@@ -111,7 +111,7 @@ const app = (app: Probot): void => {
     kind,
     repository,
   }: {
-    pullRequest: { number: number };
+    pullRequest: { number: number; state: 'open' | 'closed' };
     kind: string;
     repository: { name: string; owner: string };
   }): Promise<void> => {
@@ -137,7 +137,7 @@ const app = (app: Probot): void => {
           repo: inDBRepository.data!.id,
           kind,
           merged: false,
-          state: 'open',
+          state: pullRequest.state,
           number: pullRequest.number,
         },
       ])
@@ -415,7 +415,7 @@ const app = (app: Probot): void => {
         ).data;
 
         await updateRows({
-          pullRequest: { number: pullRequest.number },
+          pullRequest: { number: pullRequest.number, state: pullRequest.state },
           kind: config.kind,
           repository: {
             name: repo.source!.name,
