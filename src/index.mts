@@ -438,7 +438,11 @@ const isRepoHostedOnGithub = ({
     const isHostedOnGithub =
       packageJsonObject.repository.includes('github:') || packageJsonObject.repository.includes('github.com');
     debug(`${repo.full_name}: is${isHostedOnGithub ? '' : ' not'} hosted on GitHub.`);
-    return isHostedOnGithub;
+
+    const isMirror = !packageJsonObject.repository.includes(repo.full_name);
+    debug(`${repo.full_name}: is${isMirror ? '' : ' not'} a mirror.`);
+
+    return isHostedOnGithub && !isMirror;
   }
 
   if (!('url' in packageJsonObject.repository)) {
@@ -448,7 +452,11 @@ const isRepoHostedOnGithub = ({
 
   const isHostedOnGithub = packageJsonObject.repository.url.includes('github.com');
   debug(`${repo.full_name}: is${isHostedOnGithub ? '' : ' not'} hosted on GitHub.`);
-  return isHostedOnGithub;
+
+  const isMirror = !packageJsonObject.repository.url.includes(repo.full_name);
+  debug(`${repo.full_name}: is${isMirror ? '' : ' not'} a mirror.`);
+
+  return isHostedOnGithub && !isMirror;
 };
 
 const isNpmWorkspace = ({

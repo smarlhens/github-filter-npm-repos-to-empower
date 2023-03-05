@@ -274,7 +274,7 @@ const app = (app: Probot): void => {
           message: 'chore(npm): update package.json engines',
         },
         pullRequest: {
-          title: 'Update npm package.json engines',
+          title: 'Update package.json engines',
         },
         kind: 'npm-check-engines',
         files: () => {
