@@ -60,5 +60,6 @@ jobs:
           github-token: ${{ secrets.BOT_PAT }}
           script: |
             const { REPOS, SUPABASE_URL, SUPABASE_KEY } = process.env;
+            const supabase = require('@supabase/supabase-js').createClient(SUPABASE_URL, SUPABASE_KEY);
             const script = require('${{ github.workspace }}/.github/github-scripts/fork-repo-using-bot-account.js');
-            await script({ github, repos: REPOS, supabaseUrl: SUPABASE_URL, supabaseKey: SUPABASE_KEY })
+            await script({ github, repos: REPOS, supabase })

@@ -1,13 +1,10 @@
-import { createClient } from '@supabase/supabase-js';
-
-module.exports = async ({ github, repos, supabaseUrl, supabaseKey }) => {
+module.exports = async ({ github, repos, supabase }) => {
   const parsedRepos = JSON.parse(repos);
 
   if (parsedRepos.length === 0) {
     return Promise.resolve();
   }
 
-  const supabase = createClient(supabaseUrl, supabaseKey);
   return Promise.all(
     parsedRepos.map(repo =>
       github.rest.repos
