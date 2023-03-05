@@ -1,6 +1,5 @@
 import type { components } from '@octokit/openapi-types';
 import type { Octokit } from '@octokit/rest';
-import type { Repository } from '@octokit/webhooks-types';
 import detectIndent from 'detect-indent';
 import { detectNewline } from 'detect-newline';
 import 'dotenv/config';
@@ -114,19 +113,19 @@ const app = (app: Probot): void => {
   }: {
     url: string;
     kind: string;
-    repository: Repository;
+    repository: { name: string; owner: string };
   }): Promise<void> => {
     let inDBRepository = await supabase
       .from('repositories')
       .select('*')
       .eq('name', repository.name)
-      .eq('owner', repository.owner.login)
+      .eq('owner', repository.owner)
       .single();
 
     if (!inDBRepository.data) {
       inDBRepository = await supabase
         .from('repositories')
-        .insert([{ name: repository.name, owner: repository.owner.login }])
+        .insert([{ name: repository.name, owner: repository.owner }])
         .select()
         .single();
     }
@@ -418,7 +417,10 @@ const app = (app: Probot): void => {
         await updateRows({
           url: pullRequest.url,
           kind: config.kind,
-          repository: context.payload.repository,
+          repository: {
+            name: repo.source!.name,
+            owner: repo.source!.owner.login,
+          },
         });
       }),
     );
