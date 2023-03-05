@@ -2,8 +2,8 @@ name: events
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '*/5 * * * *'
+#  schedule:
+#    - cron: '*/5 * * * *'
 
 env:
   NODE_VERSION: '16.17.0'
@@ -40,16 +40,16 @@ jobs:
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
         run: npm run filter-github-events
         timeout-minutes: 5
-      - name: Add repos filtered to issue
-        uses: actions/github-script@v6
-        env:
-          REPOS: ${{ steps.filter_events.outputs.repos }}
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const { REPOS } = process.env;
-            const script = require('${{ github.workspace }}/.github/github-scripts/comment-issue-on-filter-events.js');
-            await script({ github, context, repos: REPOS })
+#      - name: Add repos filtered to issue
+#        uses: actions/github-script@v6
+#        env:
+#          REPOS: ${{ steps.filter_events.outputs.repos }}
+#        with:
+#          github-token: ${{ secrets.GITHUB_TOKEN }}
+#          script: |
+#            const { REPOS } = process.env;
+#            const script = require('${{ github.workspace }}/.github/github-scripts/comment-issue-on-filter-events.js');
+#            await script({ github, context, repos: REPOS })
 
 #      - name: Fork repo using bot account
 #        uses: actions/github-script@v6

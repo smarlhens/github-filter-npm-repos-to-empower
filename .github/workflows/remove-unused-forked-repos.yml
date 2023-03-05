@@ -2,8 +2,8 @@ name: remove-unused-forked-repos
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '0 * * * *'
+#  schedule:
+#    - cron: '0 * * * *'
 
 env:
   NODE_VERSION: '16.17.0'
