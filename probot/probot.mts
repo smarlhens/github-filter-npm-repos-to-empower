@@ -125,7 +125,15 @@ const app = (app: Probot): void => {
     if (!inDBRepository.data) {
       inDBRepository = await supabase
         .from('repositories')
-        .insert([{ name: repository.name, owner: repository.owner }])
+        .insert([{ name: repository.name, owner: repository.owner, forked: true }])
+        .select()
+        .single();
+    } else {
+      inDBRepository = await supabase
+        .from('repositories')
+        .update({ forked: true })
+        .eq('name', repository.name)
+        .eq('owner', repository.owner)
         .select()
         .single();
     }

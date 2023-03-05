@@ -54,9 +54,11 @@ jobs:
         uses: actions/github-script@v6
         env:
           REPOS: ${{ steps.filter_events.outputs.repos }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
         with:
           github-token: ${{ secrets.BOT_PAT }}
           script: |
-            const { REPOS } = process.env;
+            const { REPOS, SUPABASE_URL, SUPABASE_KEY } = process.env;
             const script = require('${{ github.workspace }}/.github/github-scripts/fork-repo-using-bot-account.js');
-            await script({ github, repos: REPOS })
+            await script({ github, repos: REPOS, supabaseUrl: SUPABASE_URL, supabaseKey: SUPABASE_KEY })

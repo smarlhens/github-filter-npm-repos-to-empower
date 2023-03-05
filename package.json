@@ -30,7 +30,8 @@
     "prepare": "husky install",
     "prettier:check": "prettier --check ./**/*.{mts,js,json,yml,md}",
     "prettier:write": "prettier --write ./**/*.{mts,js,json,yml,md}",
-    "probot": "node --experimental-specifier-resolution=node --loader ts-node/esm probot/probot.mts"
+    "probot": "node --experimental-specifier-resolution=node --loader ts-node/esm probot/probot.mts",
+    "remove-unused-forked-repos": "node --experimental-specifier-resolution=node --loader ts-node/esm .github/actions-scripts/remove-unused-forked-repos.mts"
   },
   "dependencies": {
     "@actions/core": "1.10.0",

@@ -33,18 +33,21 @@ export interface Database {
       repositories: {
         Row: {
           created_at: string;
+          forked: boolean;
           id: string;
           name: string;
           owner: string;
         };
         Insert: {
           created_at?: string;
+          forked?: boolean;
           id?: string;
           name: string;
           owner: string;
         };
         Update: {
           created_at?: string;
+          forked?: boolean;
           id?: string;
           name?: string;
           owner?: string;
