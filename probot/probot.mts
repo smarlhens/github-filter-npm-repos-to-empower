@@ -107,11 +107,11 @@ const app = (app: Probot): void => {
   };
 
   const updateRows = async ({
-    url,
+    pullRequest,
     kind,
     repository,
   }: {
-    url: string;
+    pullRequest: { number: number };
     kind: string;
     repository: { name: string; owner: string };
   }): Promise<void> => {
@@ -138,7 +138,7 @@ const app = (app: Probot): void => {
           kind,
           merged: false,
           status: 'opened',
-          url,
+          number: pullRequest.number,
         },
       ])
       .select()
@@ -415,7 +415,7 @@ const app = (app: Probot): void => {
         ).data;
 
         await updateRows({
-          url: pullRequest.url,
+          pullRequest: { number: pullRequest.number },
           kind: config.kind,
           repository: {
             name: repo.source!.name,

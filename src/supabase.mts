@@ -7,27 +7,30 @@ export interface Database {
           id: string;
           kind: string;
           merged: boolean;
+          number: number;
           repo: string;
           status: string;
-          url: string;
+          url: string | null;
         };
         Insert: {
           created_at?: string;
           id?: string;
           kind: string;
           merged?: boolean;
+          number: number;
           repo: string;
           status: string;
-          url: string;
+          url?: string | null;
         };
         Update: {
           created_at?: string;
           id?: string;
           kind?: string;
           merged?: boolean;
+          number?: number;
           repo?: string;
           status?: string;
-          url?: string;
+          url?: string | null;
         };
       };
       repositories: {
